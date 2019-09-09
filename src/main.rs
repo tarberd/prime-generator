@@ -7,11 +7,15 @@ fn xorshift(seed: u32) -> u32 {
     x
 }
 
+fn linear_congruential(seed: u32) -> u32 {
+    let a = 48271;
+    let m = 2147483647;
+    (a * seed) % m
+}
+
 fn main() {
     let seed = 123413241u32;
 
-    let seed = xorshift(seed);
-    println!("Random number: {:032b}", seed);
-    let seed = xorshift(seed);
+    let seed = linear_congruential(seed);
     println!("Random number: {:032b}", seed);
 }
