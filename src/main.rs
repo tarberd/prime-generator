@@ -1,59 +1,103 @@
-fn xorshift(seed: u32) -> u32 {
-    let x = seed;
-
-    let x = x ^ (x << 13);
-    let x = x ^ (x >> 17);
-    let x = x ^ (x << 5);
-    x
+struct Rng {
+    state: u32,
 }
 
-fn linear_congruential(seed: u32) -> u32 {
-    let a = 48271;
-    let m = 2147483647;
-    ((a * seed as u64) % m) as u32
+impl Rng {
+    fn new(seed: u32) -> Self {
+        Rng { state: seed }
+    }
+
+    fn xorshift(&mut self) -> u32 {
+        let x = self.state;
+
+        let x = x ^ (x << 13);
+        let x = x ^ (x >> 17);
+        let x = x ^ (x << 5);
+
+        self.state = x;
+
+        x
+    }
+
+    fn linear_congruential(&mut self) -> u32 {
+        let a = 48271;
+        let m = 2147483647;
+        self.state = mod_pow(a, self.state as u64, m) as u32;
+
+        self.state
+    }
+}
+
+fn mod_pow(mut base: u64, mut exp: u64, modulus: u64) -> u64 {
+    if modulus == 1 {
+        return 0;
+    }
+    let mut result = 1;
+    base = base % modulus;
+    while exp > 0 {
+        if exp % 2 == 1 {
+            result = result * base % modulus;
+        }
+        exp = exp >> 1;
+        base = base * base % modulus
+    }
+    result
 }
 
 fn miller_rabin_primality_test(testee: u32) -> bool {
-    println!("n = {}", testee);
-    let testee_one_off = testee - 1;
+    let mut two_factors = 0;
 
-    println!("{}", testee_one_off);
-    let two_factors = ((testee_one_off) as f32).log2() as u32;
+    let mut rest = testee - 1;
+    while rest % 2 == 0 {
+        rest /= 2;
+        two_factors += 1;
+    }
 
-    println!("{}", two_factors);
-    let testee_one_off_twos_off = testee_one_off >> two_factors;
-
-    println!("{}", testee_one_off_twos_off);
-
-    println!(
-        "n = {}",
-        2_u32.pow(two_factors) * testee_one_off_twos_off + 1
-    );
-
-    let rounds = 10;
-
-    for k in (0..rounds) {
+    let rounds = 12;
+    for _ in 0..rounds {
         use rand::Rng;
         let mut rng = rand::thread_rng();
+        let a = rng.gen_range(2, testee - 2);
 
-        rng.gen_range(2, testee - 2);
+        let mut x = mod_pow(a as u64, rest as u64, testee as u64) as u32;
+
+        if x == 1 || x == (testee - 1) {
+            continue;
+        }
+
+        let mut did_break = false;
+
+        for _ in 0..(two_factors - 1) {
+            x = mod_pow(x as u64, 2 as u64, testee as u64) as u32;
+
+            if x == (testee - 1) {
+                did_break = true;
+                break;
+            }
+        }
+
+        if did_break == false {
+            return false;
+        }
     }
 
     true
 }
 
 fn main() {
-    let seed = 123413241u32;
+    let mut rng = Rng::new(123413242);
 
-    let seed = linear_congruential(seed) | 1;
-    println!("Random number: {:032b}", seed);
+    let seed = rng.linear_congruential() | 1;
+    println!("Random number: {}", seed);
 
-    let prime_test = miller_rabin_primality_test(seed);
+    let mut prime_test = miller_rabin_primality_test(seed);
     println!("Is prime? : {}", prime_test);
 
-    let seed = linear_congruential(seed) | 1;
-    println!("Random number: {:032b}", seed);
+    while prime_test == false {
+        let seed = rng.linear_congruential() | 1;
+        println!("Random number: {}", seed);
 
-    let prime_test = miller_rabin_primality_test(seed);
-    println!("Is prime? : {}", prime_test);
+        prime_test = miller_rabin_primality_test(seed);
+        println!("Is prime? : {}", prime_test);
+    }
 }
