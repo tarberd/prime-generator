@@ -1,3 +1,5 @@
+use num_bigint::BigUint;
+
 struct Rng {
     state: u32,
 }
@@ -44,33 +46,36 @@ fn mod_pow(mut base: u64, mut exp: u64, modulus: u64) -> u64 {
     result
 }
 
-fn miller_rabin_primality_test(testee: u32) -> bool {
+fn miller_rabin_primality_test(candidate: BigUint) -> bool {
     let mut two_factors = 0;
 
-    let mut rest = testee - 1;
-    while rest % 2 == 0 {
-        rest /= 2;
+    let mut rest = candidate.clone() - 1_u32;
+
+    while rest.clone() % 2_u32 == BigUint::from(0_u32) {
+        rest /= 2_u32;
         two_factors += 1;
     }
 
     let rounds = 12;
     for _ in 0..rounds {
+        use num_bigint::RandBigInt;
         use rand::Rng;
+
         let mut rng = rand::thread_rng();
-        let a = rng.gen_range(2, testee - 2);
+        let a = rng.gen_biguint_range(&BigUint::from(2_u32), &(candidate.clone() - 2_u32));
 
-        let mut x = mod_pow(a as u64, rest as u64, testee as u64) as u32;
+        let mut x = a.modpow(&rest, &candidate);
 
-        if x == 1 || x == (testee - 1) {
+        if x == BigUint::from(1_u32) || x == (candidate.clone() - 1_u32) {
             continue;
         }
 
         let mut did_break = false;
 
         for _ in 0..(two_factors - 1) {
-            x = mod_pow(x as u64, 2 as u64, testee as u64) as u32;
+            x = x.modpow(&BigUint::from(2_u32), &candidate);
 
-            if x == (testee - 1) {
+            if x == (candidate.clone() - 1_u32) {
                 did_break = true;
                 break;
             }
@@ -90,14 +95,14 @@ fn main() {
     let seed = rng.linear_congruential() | 1;
     println!("Random number: {}", seed);
 
-    let mut prime_test = miller_rabin_primality_test(seed);
+    let mut prime_test = miller_rabin_primality_test(BigUint::from(seed));
     println!("Is prime? : {}", prime_test);
 
     while prime_test == false {
         let seed = rng.linear_congruential() | 1;
         println!("Random number: {}", seed);
 
-        prime_test = miller_rabin_primality_test(seed);
+        prime_test = miller_rabin_primality_test(BigUint::from(seed));
         println!("Is prime? : {}", prime_test);
     }
 }
