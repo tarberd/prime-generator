@@ -14,7 +14,7 @@ fn linear_congruential(seed: u32) -> u32 {
 }
 
 fn miller_rabin_primality_test(testee: u32) -> bool {
-    println!("{}", testee);
+    println!("n = {}", testee);
     let testee_one_off = testee - 1;
 
     println!("{}", testee_one_off);
@@ -25,9 +25,19 @@ fn miller_rabin_primality_test(testee: u32) -> bool {
 
     println!("{}", testee_one_off_twos_off);
 
+    println!(
+        "n = {}",
+        2_u32.pow(two_factors) * testee_one_off_twos_off + 1
+    );
+
     let rounds = 10;
 
-    for k in (0..rounds) {}
+    for k in (0..rounds) {
+        use rand::Rng;
+        let mut rng = rand::thread_rng();
+
+        rng.gen_range(2, testee - 2);
+    }
 
     true
 }
@@ -35,12 +45,13 @@ fn miller_rabin_primality_test(testee: u32) -> bool {
 fn main() {
     let seed = 123413241u32;
 
-    let seed = linear_congruential(seed);
+    let seed = linear_congruential(seed) | 1;
     println!("Random number: {:032b}", seed);
 
     let prime_test = miller_rabin_primality_test(seed);
     println!("Is prime? : {}", prime_test);
-    let seed = linear_congruential(seed);
+
+    let seed = linear_congruential(seed) | 1;
     println!("Random number: {:032b}", seed);
 
     let prime_test = miller_rabin_primality_test(seed);
