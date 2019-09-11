@@ -22,9 +22,9 @@ impl Rng {
     }
 
     fn linear_congruential(&mut self) -> u32 {
-        let a = 48271;
-        let m = 2147483647;
-        self.state = mod_pow(a, self.state as u64, m) as u32;
+        let a = 48_271;
+        let m = 2_147_483_647;
+        self.state = mod_pow(a, u64::from(self.state), m) as u32;
 
         self.state
     }
@@ -35,12 +35,12 @@ fn mod_pow(mut base: u64, mut exp: u64, modulus: u64) -> u64 {
         return 0;
     }
     let mut result = 1;
-    base = base % modulus;
+    base %= modulus;
     while exp > 0 {
         if exp % 2 == 1 {
             result = result * base % modulus;
         }
-        exp = exp >> 1;
+        exp >>= 1;
         base = base * base % modulus
     }
     result
@@ -56,10 +56,10 @@ fn miller_rabin_primality_test(candidate: BigUint) -> bool {
         two_factors += 1;
     }
 
-    let rounds = 12;
+    let rounds = (candidate.bits() as f64).ln() as u32 + 1;
+
     for _ in 0..rounds {
         use num_bigint::RandBigInt;
-        use rand::Rng;
 
         let mut rng = rand::thread_rng();
         let a = rng.gen_biguint_range(&BigUint::from(2_u32), &(candidate.clone() - 2_u32));
@@ -81,7 +81,7 @@ fn miller_rabin_primality_test(candidate: BigUint) -> bool {
             }
         }
 
-        if did_break == false {
+        if !did_break {
             return false;
         }
     }
@@ -89,20 +89,31 @@ fn miller_rabin_primality_test(candidate: BigUint) -> bool {
     true
 }
 
+fn make_prime_candidate(rng: &mut Rng, bits: usize) -> BigUint {
+    let mut num = BigUint::from(rng.linear_congruential());
+
+    while num.bits() <= bits {
+        num <<= 32;
+        num |= BigUint::from(rng.linear_congruential());
+    }
+
+    let extra_bits = num.bits() - bits;
+    num >>= extra_bits;
+    num |= BigUint::from(1_u32);
+
+    num
+}
+
 fn main() {
-    let mut rng = Rng::new(123413242);
+    let mut rng = Rng::new(0xDEADBEAF);
 
-    let seed = rng.linear_congruential() | 1;
-    println!("Random number: {}", seed);
+    let mut prime_test = false;
 
-    let mut prime_test = miller_rabin_primality_test(BigUint::from(seed));
-    println!("Is prime? : {}", prime_test);
+    while !prime_test {
+        let candidate = make_prime_candidate(&mut rng, 1024);
+        println!("Random number: {}", candidate);
 
-    while prime_test == false {
-        let seed = rng.linear_congruential() | 1;
-        println!("Random number: {}", seed);
-
-        prime_test = miller_rabin_primality_test(BigUint::from(seed));
+        prime_test = miller_rabin_primality_test(candidate);
         println!("Is prime? : {}", prime_test);
     }
 }
