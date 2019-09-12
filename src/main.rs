@@ -89,6 +89,15 @@ fn miller_rabin_primality_test(candidate: BigUint) -> bool {
     true
 }
 
+fn fermat_primality_test(candidate: BigUint) -> bool {
+    if candidate == BigUint::from(2_u32) {
+        return true;
+    } else if candidate.clone() & BigUint::from(1_u32) != BigUint::from(1_u32) {
+        return false;
+    }
+    BigUint::from(2_u32).modpow(&(candidate.clone() - 1_u32), &candidate) == BigUint::from(1_u32)
+}
+
 fn make_prime_candidate(rng: &mut Rng, bits: usize) -> BigUint {
     let mut num = BigUint::from(rng.linear_congruential());
 
@@ -110,10 +119,13 @@ fn main() {
     let mut prime_test = false;
 
     while !prime_test {
-        let candidate = make_prime_candidate(&mut rng, 1024);
+        let candidate = make_prime_candidate(&mut rng, 4096);
         println!("Random number: {}", candidate);
 
-        prime_test = miller_rabin_primality_test(candidate);
+        prime_test = miller_rabin_primality_test(candidate.clone());
         println!("Is prime? : {}", prime_test);
+
+        let prime_test2 = fermat_primality_test(candidate);
+        println!("Is prime? : {}", prime_test2);
     }
 }
