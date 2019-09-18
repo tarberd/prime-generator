@@ -13,9 +13,9 @@ fn main() {
 
         prime_test = miller_rabin_primality_test(candidate.clone());
 
-        // let prime_test = fermat_primality_test(candidate);
-        // println!("Is prime? : {}", prime_test);
+        // prime_test = fermat_primality_test(candidate);
     }
+
     println!("Random number: {}", candidate);
     println!("Is prime? : {}", prime_test);
 }
